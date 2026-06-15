@@ -16,6 +16,7 @@ import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { useSocket } from "@/hooks/useSocket";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { slideInRight } from "@/animations/variants";
+import { store } from "@/lib/storage";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -27,21 +28,24 @@ export default function ChatPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [matchData, setMatchData] = useState(null);
   const [partnerLeft, setPartnerLeft] = useState(false);
+  const [peerName, setPeerName] = useState("Stranger");
 
   const roomIdRef = useRef(null);
   const peerIdRef = useRef(null);
 
   // Load match data and bootstrap WebRTC
   useEffect(() => {
-    const stored = sessionStorage.getItem("match_data");
+    const stored = store.get("match_data");
     if (!stored) { router.push("/entry"); return; }
 
     const data = JSON.parse(stored);
     setMatchData(data);
+    setPeerName(data.peerName || store.get("peer_name") || "Stranger");
     roomIdRef.current = data.roomId;
     peerIdRef.current = data.peerId;
 
-    const mode = sessionStorage.getItem("chat_mode") || "video";
+    // The call mode comes from the match itself (set by both sides of the connect).
+    const mode = data.mode || store.get("chat_mode") || "video";
     const isVideo = mode === "video";
 
     async function setup() {
@@ -125,7 +129,7 @@ export default function ChatPage() {
     webRTC.closeConnection();
     setMessages([]);
     setPartnerLeft(false);
-    sessionStorage.removeItem("match_data");
+    store.remove("match_data");
     router.push("/matchmaking");
   }, [webRTC, router]);
 
@@ -160,7 +164,7 @@ export default function ChatPage() {
         <div className="flex items-center gap-3">
           <StatusIndicator
             status={partnerLeft ? "offline" : webRTC.connectionState === "connected" ? "connected" : "searching"}
-            label={partnerLeft ? "Partner left" : webRTC.connectionState === "connected" ? "Connected" : "Connecting…"}
+            label={partnerLeft ? `${peerName} left` : webRTC.connectionState === "connected" ? `Connected · ${peerName}` : "Connecting…"}
           />
           <button
             onClick={() => setReportOpen(true)}

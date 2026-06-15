@@ -7,6 +7,7 @@ const cors = require('cors');
 
 const matchmaking = require('./services/matchmaking');
 const signaling = require('./services/signaling');
+const presence = require('./services/presence');
 const { filterMessage, reportUser } = require('./services/moderation');
 
 const app = express();
@@ -36,9 +37,50 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+function broadcastPresence() {
+  io.emit('presence:users', presence.list());
+}
+
 io.on('connection', (socket) => {
   socket.on('join-queue', ({ interests = [], mode = 'video' } = {}) => {
     matchmaking.joinQueue(socket, { interests, mode });
+  });
+
+  // ── Lobby presence ──
+  socket.on('presence:join', (profile = {}) => {
+    presence.register(socket.id, profile);
+    broadcastPresence();
+  });
+
+  socket.on('presence:list', () => {
+    socket.emit('presence:users', presence.list());
+  });
+
+  // Direct (instant) connect to a specific online user.
+  socket.on('direct:connect', ({ to } = {}) => {
+    const target = presence.get(to);
+    const me = presence.get(socket.id);
+    if (!me) return;
+
+    const targetSocket = io.sockets.sockets.get(to);
+    if (!target || !targetSocket || target.status === 'busy' || to === socket.id) {
+      socket.emit('direct:unavailable', { to });
+      return;
+    }
+
+    const mode = me.mode;
+    const roomId = matchmaking.createRoom([socket.id, to], mode);
+    socket.join(roomId);
+    targetSocket.join(roomId);
+
+    socket.emit('match-found', {
+      roomId, peerId: to, initiator: true, mode, peerName: target.name,
+    });
+    targetSocket.emit('match-found', {
+      roomId, peerId: socket.id, initiator: false, mode, peerName: me.name,
+    });
+
+    broadcastPresence();
   });
 
   socket.on('webrtc-offer', (data) => {
@@ -79,6 +121,8 @@ io.on('connection', (socket) => {
     }
     if (roomId) socket.leave(roomId);
     matchmaking.leaveQueue(socket.id);
+    // leaveRoom freed both statuses; reflect it in the lobby.
+    broadcastPresence();
   });
 
   socket.on('report-user', async ({ reportedId, reason, sessionId }) => {
@@ -91,11 +135,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    const { partnerId, roomId } = matchmaking.leaveRoom(socket.id);
+    const { partnerId } = matchmaking.leaveRoom(socket.id);
     if (partnerId) {
       io.to(partnerId).emit('user-left', {});
     }
     matchmaking.leaveQueue(socket.id);
+    presence.unregister(socket.id);
+    broadcastPresence();
   });
 });
 

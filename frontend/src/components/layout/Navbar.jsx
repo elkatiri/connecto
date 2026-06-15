@@ -31,6 +31,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-7">
           <Link href="/#features"     className="text-sm text-muted hover:text-text transition-colors duration-200">Features</Link>
           <Link href="/#how-it-works" className="text-sm text-muted hover:text-text transition-colors duration-200">How It Works</Link>
+          <Link href="/entry?go=lobby" className="text-sm text-muted hover:text-text transition-colors duration-200">Browse People</Link>
         </div>
 
         {/* CTA */}

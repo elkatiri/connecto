@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { useSocket } from "@/hooks/useSocket";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
+import { store } from "@/lib/storage";
 
 gsap.registerPlugin(TextPlugin);
 
@@ -37,15 +38,15 @@ export default function MatchmakingPage() {
 
   // Join queue on mount
   useEffect(() => {
-    const mode = sessionStorage.getItem("chat_mode") || "video";
-    const interests = JSON.parse(sessionStorage.getItem("chat_interests") || "[]");
+    const mode = store.get("chat_mode") || "video";
+    const interests = JSON.parse(store.get("chat_interests") || "[]");
     joinQueue({ mode, interests });
   }, [joinQueue]);
 
   // Navigate on match
   useEffect(() => {
     if (status === "matched" && matchData) {
-      sessionStorage.setItem("match_data", JSON.stringify(matchData));
+      store.set("match_data", JSON.stringify(matchData));
       const t = setTimeout(() => router.push("/chat"), 600);
       return () => clearTimeout(t);
     }

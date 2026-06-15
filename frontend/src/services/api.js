@@ -1,10 +1,11 @@
 "use client";
 
+import { store } from "@/lib/storage";
+
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001";
 
 async function request(path, options = {}) {
-  const token =
-    typeof window !== "undefined" ? sessionStorage.getItem("token") : null;
+  const token = store.get("token");
 
   const res = await fetch(`${BASE}${path}`, {
     headers: {

@@ -1,7 +1,17 @@
 const { v4: uuidv4 } = require('uuid');
+const presence = require('./presence');
 
 const queue = new Map();
 const rooms = new Map();
+
+// Creates a room record (shared by random matchmaking and direct lobby connects)
+// and marks both participants busy in the presence registry.
+function createRoom(participants, mode) {
+  const roomId = uuidv4();
+  rooms.set(roomId, { participants, mode, startedAt: Date.now() });
+  participants.forEach((id) => presence.setStatus(id, 'busy'));
+  return roomId;
+}
 
 function joinQueue(socket, { interests = [], mode = 'video' }) {
   queue.set(socket.id, { socket, interests, mode, joinedAt: Date.now() });
@@ -32,15 +42,10 @@ function attemptMatch(socketId) {
 
   if (!bestMatch) return;
 
-  const roomId = uuidv4();
   queue.delete(socketId);
   queue.delete(bestMatch.id);
 
-  rooms.set(roomId, {
-    participants: [socketId, bestMatch.id],
-    mode: candidate.mode,
-    startedAt: Date.now(),
-  });
+  const roomId = createRoom([socketId, bestMatch.id], candidate.mode);
 
   candidate.socket.join(roomId);
   bestMatch.entry.socket.join(roomId);
@@ -68,6 +73,8 @@ function leaveRoom(socketId) {
     if (room.participants.includes(socketId)) {
       const partnerId = room.participants.find((id) => id !== socketId);
       rooms.delete(roomId);
+      // Both participants are free again (if still online in the lobby).
+      room.participants.forEach((id) => presence.setStatus(id, 'available'));
       return { partnerId, roomId };
     }
   }
@@ -78,4 +85,4 @@ function getQueueSize() {
   return queue.size;
 }
 
-module.exports = { joinQueue, leaveQueue, leaveRoom, getQueueSize };
+module.exports = { joinQueue, leaveQueue, leaveRoom, getQueueSize, createRoom };
