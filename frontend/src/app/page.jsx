@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import gsap from "gsap";
@@ -14,6 +14,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { getSession } from "@/lib/session";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -42,9 +43,26 @@ const STATS = [
 export default function LandingPage() {
   const rootRef = useRef(null);
   const orbRef  = useRef(null);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    setSignedIn(!!getSession());
+  }, []);
 
   useGSAP(() => {
     const ctx = gsap.context(() => {
+      // Honor reduced-motion: reveal everything instantly, skip animations.
+      const reduce = typeof window !== "undefined"
+        && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) {
+        gsap.set(
+          [".hero-badge", ".hero-title", ".hero-sub", ".hero-cta", ".hero-stats",
+           ".hero-mockup", ".feature-card", ".step-card"],
+          { opacity: 1, x: 0, y: 0, scale: 1, clearProps: "transform" }
+        );
+        return;
+      }
+
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
       tl.fromTo(".hero-badge",  { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.5 },              0)
@@ -107,18 +125,37 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-14">
-                <Link href="/entry" className="hero-cta opacity-0">
-                  <Button variant="primary" size="lg" className="w-full sm:w-auto cta-glow gap-2">
-                    <Video size={18} />
-                    Start Video Chat
-                  </Button>
-                </Link>
-                <Link href="/entry?mode=text" className="hero-cta opacity-0">
-                  <Button variant="secondary" size="lg" className="w-full sm:w-auto gap-2">
-                    <MessageSquare size={18} />
-                    Text Only
-                  </Button>
-                </Link>
+                {signedIn ? (
+                  <>
+                    <Link href="/lobby" className="hero-cta opacity-0">
+                      <Button variant="primary" size="lg" className="w-full sm:w-auto cta-glow gap-2">
+                        <Users size={18} />
+                        Open CONNECTO
+                      </Button>
+                    </Link>
+                    <Link href="/matchmaking" className="hero-cta opacity-0">
+                      <Button variant="secondary" size="lg" className="w-full sm:w-auto gap-2">
+                        <Video size={18} />
+                        Random Match
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/entry" className="hero-cta opacity-0">
+                      <Button variant="primary" size="lg" className="w-full sm:w-auto cta-glow gap-2">
+                        <Video size={18} />
+                        Start Video Chat
+                      </Button>
+                    </Link>
+                    <Link href="/entry?mode=text" className="hero-cta opacity-0">
+                      <Button variant="secondary" size="lg" className="w-full sm:w-auto gap-2">
+                        <MessageSquare size={18} />
+                        Text Only
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
 
               {/* Stats */}

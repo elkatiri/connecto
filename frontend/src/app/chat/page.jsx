@@ -4,8 +4,10 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Flag, Zap } from "lucide-react";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { Flag } from "lucide-react";
+import { avatarGradient, initials } from "@/lib/avatar";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { VideoPanel } from "@/components/chat/VideoPanel";
 import { TextPanel } from "@/components/chat/TextPanel";
@@ -29,6 +31,7 @@ export default function ChatPage() {
   const [matchData, setMatchData] = useState(null);
   const [partnerLeft, setPartnerLeft] = useState(false);
   const [peerName, setPeerName] = useState("Stranger");
+  const [connecting, setConnecting] = useState(true);
 
   const roomIdRef = useRef(null);
   const peerIdRef = useRef(null);
@@ -144,6 +147,15 @@ export default function ChatPage() {
     handleSkip();
   }, [socket, handleSkip]);
 
+  // Dismiss the connecting overlay once the call is live, or after a short fallback.
+  useEffect(() => {
+    if (webRTC.connectionState === "connected") setConnecting(false);
+  }, [webRTC.connectionState]);
+  useEffect(() => {
+    const t = setTimeout(() => setConnecting(false), 7000);
+    return () => clearTimeout(t);
+  }, []);
+
   const chatMode = matchData?.mode || "video";
   const isVideo = chatMode === "video";
 
@@ -156,9 +168,7 @@ export default function ChatPage() {
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-linear-to-br from-[#7C3AED] to-[#06B6D4] flex items-center justify-center">
-            <Zap size={14} className="text-white" />
-          </div>
+          <Image src="/logo-mark.png" alt="CONNECTO" width={28} height={28} className="w-7 h-7" />
           <span className="font-bold gradient-text text-sm sm:text-base">CONNECTO</span>
         </div>
         <div className="flex items-center gap-3">
@@ -168,6 +178,7 @@ export default function ChatPage() {
           />
           <button
             onClick={() => setReportOpen(true)}
+            aria-label="Report this user"
             className="p-2 rounded-xl glass-sm text-muted hover:text-red-400 border border-white/6 hover:border-red-500/30 transition-all"
           >
             <Flag size={15} />
@@ -231,6 +242,49 @@ export default function ChatPage() {
         onClose={() => setReportOpen(false)}
         onSubmit={handleReport}
       />
+
+      {/* Connecting overlay — shown until the call is live */}
+      <AnimatePresence>
+        {matchData && !partnerLeft && connecting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-sm"
+          >
+            {(() => {
+              const [cf, ct] = avatarGradient(peerName);
+              return (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="relative mb-6"
+                >
+                  <span className="absolute -inset-3 rounded-full animate-ping"
+                        style={{ background: `radial-gradient(circle, ${cf}44, transparent 70%)` }} />
+                  <div className="relative w-24 h-24 rounded-3xl flex items-center justify-center font-bold text-white text-3xl"
+                       style={{ background: `linear-gradient(135deg, ${cf}, ${ct})`, boxShadow: `0 0 48px ${cf}66` }}>
+                    {initials(peerName)}
+                  </div>
+                </motion.div>
+              );
+            })()}
+            <p className="text-lg font-semibold text-text">Connecting with {peerName}…</p>
+            <p className="text-sm text-muted mt-1">Setting up your {isVideo ? "video" : "text"} chat</p>
+            <div className="flex gap-1.5 mt-5">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageWrapper>
   );
 }

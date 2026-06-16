@@ -130,14 +130,14 @@ export default function MatchmakingPage() {
           {/* Ambient glow */}
           <div
             ref={glowRef}
-            className="absolute w-40 h-40 rounded-full bg-[#7C3AED]/20 blur-3xl"
+            className="absolute w-40 h-40 rounded-full bg-[#8b5cf6]/20 blur-3xl"
             style={{ opacity: 0.2 }}
           />
 
           {/* Center globe */}
           <div
             ref={globeRef}
-            className="relative z-10 w-20 h-20 rounded-full bg-linear-to-br from-[#7C3AED] to-[#06B6D4] flex items-center justify-center text-4xl shadow-[0_0_40px_rgba(124,58,237,0.5)]"
+            className="relative z-10 w-20 h-20 rounded-full bg-linear-to-br from-[#8b5cf6] to-[#06B6D4] flex items-center justify-center text-4xl shadow-[0_0_40px_rgba(139,92,246,0.5)]"
           >
             🌍
           </div>
@@ -153,7 +153,7 @@ export default function MatchmakingPage() {
 
           {/* Orbiting dots */}
           {[
-            { ref: dot1Ref, color: "#7C3AED" },
+            { ref: dot1Ref, color: "#8b5cf6" },
             { ref: dot2Ref, color: "#06B6D4" },
             { ref: dot3Ref, color: "#a78bfa" },
           ].map(({ ref, color }, i) => (

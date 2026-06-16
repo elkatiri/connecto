@@ -6,12 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Users, Search, Shuffle, AlertCircle, Video, MessageSquare, Radio, Sparkles,
+  Users, Search, Shuffle, Video, MessageSquare, Radio, Sparkles,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { UserCard } from "@/components/lobby/UserCard";
+import { UserCardSkeleton } from "@/components/lobby/UserCardSkeleton";
 import { usePresence } from "@/hooks/usePresence";
+import { useToast } from "@/components/ui/Toast";
 import { store } from "@/lib/storage";
 
 const MODE_FILTERS = [
@@ -22,6 +24,7 @@ const MODE_FILTERS = [
 
 export default function LobbyPage() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const [profile, setProfile] = useState(null);
   const [query, setQuery] = useState("");
@@ -43,7 +46,7 @@ export default function LobbyPage() {
     });
   }, [router]);
 
-  const { users, match, unavailable, connectTo } = usePresence(profile || {});
+  const { users, loaded, match, unavailable, connectTo } = usePresence(profile || {});
 
   useEffect(() => {
     if (!match) return;
@@ -53,8 +56,11 @@ export default function LobbyPage() {
   }, [match, router]);
 
   useEffect(() => {
-    if (unavailable && unavailable === connectingId) setConnectingId(null);
-  }, [unavailable, connectingId]);
+    if (unavailable && unavailable === connectingId) {
+      setConnectingId(null);
+      toast("That person just started another call. Try someone else.", { type: "error" });
+    }
+  }, [unavailable, connectingId, toast]);
 
   function handleConnect(peerId) {
     setConnectingId(peerId);
@@ -141,8 +147,12 @@ export default function LobbyPage() {
           )}
         </div>
 
-        {/* Grid / empty state */}
-        {filtered.length === 0 ? (
+        {/* Loading skeletons */}
+        {!loaded ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => <UserCardSkeleton key={i} />)}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="glass rounded-3xl py-24 px-6 text-center">
             <div className="w-14 h-14 rounded-2xl glass-sm flex items-center justify-center mx-auto mb-5">
               <Users size={22} className="text-muted" />
@@ -189,22 +199,6 @@ export default function LobbyPage() {
           </motion.div>
         )}
       </main>
-
-      {/* Unavailable toast */}
-      <AnimatePresence>
-        {unavailable && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 glass-sm rounded-xl px-4 py-3 flex items-center gap-2.5 z-50"
-            style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
-          >
-            <AlertCircle size={16} className="text-amber-400" />
-            <span className="text-sm text-text">That person just started another call. Try someone else.</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </AppShell>
   );
 }

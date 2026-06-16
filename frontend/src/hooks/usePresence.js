@@ -6,6 +6,7 @@ import socket from "@/services/socket";
 // Joins the lobby presence, keeps the live user list, and handles instant connects.
 export function usePresence({ name, interests = [], mode = "video" } = {}) {
   const [users, setUsers] = useState([]);
+  const [loaded, setLoaded] = useState(false); // first presence list received
   const [match, setMatch] = useState(null);     // set when a call is established
   const [unavailable, setUnavailable] = useState(null); // peer id that was busy
   const profileRef = useRef({ name, interests, mode });
@@ -22,6 +23,7 @@ export function usePresence({ name, interests = [], mode = "video" } = {}) {
 
     function onUsers(list) {
       setUsers(Array.isArray(list) ? list : []);
+      setLoaded(true);
     }
     function onMatch(data) {
       setMatch(data);
@@ -60,5 +62,5 @@ export function usePresence({ name, interests = [], mode = "video" } = {}) {
   // Everyone except me.
   const others = users.filter((u) => u.id !== socket.id);
 
-  return { users: others, selfId: socket.id, match, unavailable, connectTo };
+  return { users: others, loaded, selfId: socket.id, match, unavailable, connectTo };
 }

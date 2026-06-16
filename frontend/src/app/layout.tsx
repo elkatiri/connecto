@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "CONNECTO — Random Video & Text Chat",
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full antialiased bg-bg text-text">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

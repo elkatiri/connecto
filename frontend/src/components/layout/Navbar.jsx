@@ -1,11 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { getSession } from "@/lib/session";
 
 export function Navbar() {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    setSignedIn(!!getSession());
+  }, []);
+
   return (
     <motion.nav
       initial={{ opacity: 0, y: -20 }}
@@ -36,12 +44,20 @@ export function Navbar() {
 
         {/* CTA */}
         <div className="flex items-center gap-2.5">
-          <Button variant="secondary" size="sm" asChild>
-            <Link href="/entry">Login</Link>
-          </Button>
-          <Button variant="primary" size="sm" asChild>
-            <Link href="/entry">Start Chat</Link>
-          </Button>
+          {signedIn ? (
+            <Button variant="primary" size="sm" asChild>
+              <Link href="/lobby">Open App</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" size="sm" asChild>
+                <Link href="/entry">Login</Link>
+              </Button>
+              <Button variant="primary" size="sm" asChild>
+                <Link href="/entry">Start Chat</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>

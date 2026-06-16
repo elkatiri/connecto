@@ -123,3 +123,22 @@ body {
 .video-placeholder {
   background: radial-gradient(ellipse at center, #0d0d18 0%, #030307 100%);
 }
+
+/* Keyboard focus visibility */
+:focus-visible {
+  outline: 2px solid rgba(139, 92, 246, 0.75);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

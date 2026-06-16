@@ -13,10 +13,10 @@ export function SkipButton({ onSkip, disabled }) {
       disabled={disabled}
       className="
         flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm
-        bg-linear-to-r from-[#7C3AED] to-[#06B6D4]
+        bg-linear-to-r from-[#8b5cf6] to-[#06B6D4]
         text-white cursor-pointer select-none
-        shadow-[0_0_24px_rgba(124,58,237,0.35)]
-        hover:shadow-[0_0_36px_rgba(124,58,237,0.55)]
+        shadow-[0_0_24px_rgba(139,92,246,0.35)]
+        hover:shadow-[0_0_36px_rgba(139,92,246,0.55)]
         disabled:opacity-50 disabled:cursor-not-allowed
         transition-shadow duration-200
       "

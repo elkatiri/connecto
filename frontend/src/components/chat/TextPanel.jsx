@@ -102,7 +102,7 @@ export function TextPanel({ messages, onSend, blocked }) {
             className="
               flex-1 bg-white/4 border border-white/8 rounded-xl
               px-4 py-2.5 text-sm text-text placeholder:text-muted
-              focus:outline-none focus:border-[#7C3AED]/50 transition-colors
+              focus:outline-none focus:border-[#8b5cf6]/50 transition-colors
             "
           />
           <button
@@ -110,9 +110,9 @@ export function TextPanel({ messages, onSend, blocked }) {
             disabled={!text.trim()}
             className="
               w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
-              bg-linear-to-br from-[#7C3AED] to-[#06B6D4]
+              bg-linear-to-br from-[#8b5cf6] to-[#06B6D4]
               text-white disabled:opacity-40 disabled:cursor-not-allowed
-              hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-shadow
+              hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-shadow
             "
           >
             <Send size={14} />

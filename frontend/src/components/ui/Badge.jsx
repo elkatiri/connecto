@@ -6,7 +6,7 @@ const variants = {
   default:
     "bg-white/5 border border-white/10 text-text",
   primary:
-    "bg-[#7C3AED]/20 border border-[#7C3AED]/30 text-[#a78bfa]",
+    "bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 text-[#a78bfa]",
   secondary:
     "bg-[#06B6D4]/20 border border-[#06B6D4]/30 text-[#67e8f9]",
   success:

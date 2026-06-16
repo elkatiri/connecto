@@ -63,6 +63,7 @@ function SidebarContent({ pathname, session, onNavigate, onLogout }) {
           <button
             onClick={onLogout}
             title="Log out"
+            aria-label="Log out"
             className="p-2 rounded-lg text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut size={16} />
@@ -98,7 +99,7 @@ export function AppShell({ children }) {
           <Image src="/logo-mark.png" alt="CONNECTO" width={30} height={30} className="w-7 h-7" />
           <span className="font-bold gradient-text text-sm tracking-tight">CONNECTO</span>
         </Link>
-        <button onClick={() => setOpen(true)} className="p-2 rounded-lg text-muted hover:text-text">
+        <button onClick={() => setOpen(true)} aria-label="Open menu" className="p-2 rounded-lg text-muted hover:text-text">
           <Menu size={20} />
         </button>
       </div>
@@ -119,6 +120,7 @@ export function AppShell({ children }) {
             >
               <button
                 onClick={() => setOpen(false)}
+                aria-label="Close menu"
                 className="absolute top-4 right-4 p-2 rounded-lg text-muted hover:text-text z-10"
               >
                 <X size={18} />
