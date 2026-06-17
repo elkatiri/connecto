@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Mic, MicOff, Video, VideoOff, User } from "lucide-react";
 
-export function VideoPanel({ localStreamRef, remoteStream, connectionState, onToggleMute, onToggleCamera }) {
+export function VideoPanel({ localStreamRef, remoteStream, connectionState, onToggleMute, onToggleCamera, immersive = false }) {
   const remoteVideoRef = useRef(null);
   const localVideoRef = useRef(null);
   const [muted, setMuted] = useState(false);
@@ -55,9 +55,11 @@ export function VideoPanel({ localStreamRef, remoteStream, connectionState, onTo
   }
 
   const isConnected = connectionState === "connected";
+  const pipRight = immersive ? 20 : 12;
+  const pipBottom = immersive ? 108 : 56;
 
   return (
-    <div className="relative w-full h-full bg-bg rounded-2xl overflow-hidden">
+    <div className={`relative w-full h-full bg-bg overflow-hidden ${immersive ? "" : "rounded-2xl"}`}>
       {/* Remote video */}
       {isConnected && remoteStream ? (
         <video
@@ -80,8 +82,8 @@ export function VideoPanel({ localStreamRef, remoteStream, connectionState, onTo
       {/* Local PiP */}
       {localStreamRef.current && (
         <motion.div
-          style={{ right: 12 - pip.x, bottom: 56 - pip.y }}
-          className="absolute w-40 h-28 rounded-xl overflow-hidden glass-sm border border-white/10 cursor-grab active:cursor-grabbing"
+          style={{ right: pipRight - pip.x, bottom: pipBottom - pip.y }}
+          className="absolute w-32 h-24 sm:w-44 sm:h-32 rounded-2xl overflow-hidden glass-sm border border-white/15 cursor-grab active:cursor-grabbing shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-10"
           onMouseDown={onMouseDown}
         >
           <video
@@ -99,7 +101,8 @@ export function VideoPanel({ localStreamRef, remoteStream, connectionState, onTo
         </motion.div>
       )}
 
-      {/* Controls */}
+      {/* Controls (hidden in immersive mode — the page provides a unified bar) */}
+      {!immersive && (
       <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-center gap-3">
         <motion.button
           whileTap={{ scale: 0.9 }}
@@ -124,6 +127,7 @@ export function VideoPanel({ localStreamRef, remoteStream, connectionState, onTo
           {camOff ? <VideoOff size={16} /> : <Video size={16} />}
         </motion.button>
       </div>
+      )}
     </div>
   );
 }

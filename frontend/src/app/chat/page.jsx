@@ -6,18 +6,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flag } from "lucide-react";
+import { Flag, Mic, MicOff, Video, VideoOff, PhoneOff, SkipForward, MessageSquare, X } from "lucide-react";
 import { avatarGradient, initials } from "@/lib/avatar";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { VideoPanel } from "@/components/chat/VideoPanel";
 import { TextPanel } from "@/components/chat/TextPanel";
-import { SkipButton } from "@/components/chat/SkipButton";
 import { ReportModal } from "@/components/chat/ReportModal";
-import { Badge } from "@/components/ui/Badge";
 import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { useSocket } from "@/hooks/useSocket";
 import { useWebRTC } from "@/hooks/useWebRTC";
-import { slideInRight } from "@/animations/variants";
 import { store } from "@/lib/storage";
 
 export default function ChatPage() {
@@ -32,9 +29,15 @@ export default function ChatPage() {
   const [partnerLeft, setPartnerLeft] = useState(false);
   const [peerName, setPeerName] = useState("Stranger");
   const [connecting, setConnecting] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [camOff, setCamOff] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   const roomIdRef = useRef(null);
   const peerIdRef = useRef(null);
+  const chatOpenRef = useRef(false);
+  chatOpenRef.current = chatOpen;
 
   // Load match data and bootstrap WebRTC
   useEffect(() => {
@@ -92,6 +95,7 @@ export default function ChatPage() {
         ...p,
         { id: Date.now() + Math.random(), text, isOwn: false, timestamp },
       ]);
+      if (!chatOpenRef.current) setUnread((u) => u + 1);
     }
     function onUserLeft() {
       setPartnerLeft(true);
@@ -136,6 +140,27 @@ export default function ChatPage() {
     router.push("/matchmaking");
   }, [webRTC, router]);
 
+  const handleEnd = useCallback(() => {
+    webRTC.closeConnection();
+    store.remove("match_data");
+    router.push("/lobby");
+  }, [webRTC, router]);
+
+  const toggleMute = useCallback(() => {
+    setMuted(webRTC.toggleMute() === false);
+  }, [webRTC]);
+
+  const toggleCam = useCallback(() => {
+    setCamOff(webRTC.toggleCamera() === false);
+  }, [webRTC]);
+
+  const openChat = useCallback(() => {
+    setChatOpen((o) => {
+      if (!o) setUnread(0);
+      return !o;
+    });
+  }, []);
+
   const handleReport = useCallback(async (reason) => {
     if (!peerIdRef.current) return;
     socket.emit("report-user", {
@@ -160,18 +185,32 @@ export default function ChatPage() {
   const isVideo = chatMode === "video";
 
   return (
-    <PageWrapper className="flex flex-col min-h-screen p-3 sm:p-4 gap-3">
-      {/* Header */}
+    <PageWrapper className="relative h-screen overflow-hidden">
+      {/* Background — full-bleed video, or a subtle backdrop in text mode */}
+      {isVideo ? (
+        <div className="absolute inset-0">
+          <VideoPanel
+            localStreamRef={webRTC.localStreamRef}
+            remoteStream={webRTC.remoteStream}
+            connectionState={webRTC.connectionState}
+            immersive
+          />
+        </div>
+      ) : (
+        <div className="absolute inset-0 video-placeholder" />
+      )}
+
+      {/* Top scrim header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="absolute top-0 inset-x-0 z-20 px-4 py-3.5 flex items-center justify-between bg-linear-to-b from-black/75 via-black/25 to-transparent"
       >
         <div className="flex items-center gap-2">
           <Image src="/logo-mark.png" alt="CONNECTO" width={28} height={28} className="w-7 h-7" />
           <span className="font-bold gradient-text text-sm sm:text-base">CONNECTO</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <StatusIndicator
             status={partnerLeft ? "offline" : webRTC.connectionState === "connected" ? "connected" : "searching"}
             label={partnerLeft ? `${peerName} left` : webRTC.connectionState === "connected" ? `Connected · ${peerName}` : "Connecting…"}
@@ -179,7 +218,7 @@ export default function ChatPage() {
           <button
             onClick={() => setReportOpen(true)}
             aria-label="Report this user"
-            className="p-2 rounded-xl glass-sm text-muted hover:text-red-400 border border-white/6 hover:border-red-500/30 transition-all"
+            className="p-2 rounded-xl glass-sm text-muted hover:text-red-400 border border-white/8 hover:border-red-500/30 transition-all"
           >
             <Flag size={15} />
           </button>
@@ -187,54 +226,115 @@ export default function ChatPage() {
       </motion.div>
 
       {/* Partner left banner */}
-      {partnerLeft && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-sm px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-center"
-        >
-          <p className="text-sm text-amber-400">Your partner has left. Skip to meet someone new.</p>
-        </motion.div>
-      )}
-
-      {/* Main panels */}
-      <div className="flex-1 flex flex-col md:flex-row gap-3 min-h-0">
-        {isVideo && (
+      <AnimatePresence>
+        {partnerLeft && (
           <motion.div
-            variants={slideInRight}
-            initial="hidden"
-            animate="visible"
-            className="md:flex-[3] h-72 md:h-auto min-h-0"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-20 glass-sm px-4 py-2.5 rounded-xl border border-amber-500/25 bg-amber-500/10"
           >
-            <VideoPanel
-              localStreamRef={webRTC.localStreamRef}
-              remoteStream={webRTC.remoteStream}
-              connectionState={webRTC.connectionState}
-              onToggleMute={webRTC.toggleMute}
-              onToggleCamera={webRTC.toggleCamera}
-            />
+            <p className="text-sm text-amber-400">{peerName} left — tap Next to meet someone new.</p>
           </motion.div>
         )}
+      </AnimatePresence>
 
-        <motion.div
-          variants={slideInRight}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: isVideo ? 0.1 : 0 }}
-          className={`${isVideo ? "md:flex-[2]" : "flex-1"} h-72 md:h-auto min-h-0`}
-        >
-          <TextPanel
-            messages={messages}
-            onSend={handleSend}
-            blocked={blocked}
-          />
-        </motion.div>
-      </div>
+      {/* Text-mode conversation (fills the screen, capped for readability) */}
+      {!isVideo && (
+        <div className="absolute inset-0 pt-16 pb-28 px-3 sm:px-4 flex justify-center z-10">
+          <div className="w-full max-w-3xl h-full">
+            <TextPanel messages={messages} onSend={handleSend} blocked={blocked} />
+          </div>
+        </div>
+      )}
 
-      {/* Skip */}
-      <div className="flex justify-center pb-2">
-        <SkipButton onSkip={handleSkip} disabled={false} />
-      </div>
+      {/* Floating control bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="absolute bottom-6 inset-x-0 z-30 flex justify-center px-4"
+      >
+        <div className="glass-sm rounded-full px-3 py-2.5 flex items-center gap-2 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+          {isVideo && (
+            <button
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute microphone" : "Mute microphone"}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${muted ? "bg-red-500/30 text-red-400 border border-red-500/40" : "bg-white/10 text-text hover:bg-white/15"}`}
+            >
+              {muted ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          )}
+          {isVideo && (
+            <button
+              onClick={toggleCam}
+              aria-label={camOff ? "Turn camera on" : "Turn camera off"}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${camOff ? "bg-red-500/30 text-red-400 border border-red-500/40" : "bg-white/10 text-text hover:bg-white/15"}`}
+            >
+              {camOff ? <VideoOff size={18} /> : <Video size={18} />}
+            </button>
+          )}
+          <button
+            onClick={handleEnd}
+            aria-label="End and return to lobby"
+            className="w-11 h-11 rounded-full flex items-center justify-center bg-red-500/85 text-white hover:bg-red-500 transition-colors"
+          >
+            <PhoneOff size={18} />
+          </button>
+          <button
+            onClick={handleSkip}
+            className="h-11 px-5 rounded-full flex items-center gap-2 text-white font-semibold text-sm transition-shadow hover:shadow-[0_0_24px_rgba(139,92,246,0.5)]"
+            style={{ background: "linear-gradient(135deg, #8b5cf6, #06b6d4)" }}
+          >
+            <SkipForward size={16} /> Next
+          </button>
+          {isVideo && (
+            <button
+              onClick={openChat}
+              aria-label="Toggle chat"
+              className={`relative w-11 h-11 rounded-full flex items-center justify-center transition-colors ${chatOpen ? "bg-white/20 text-text" : "bg-white/10 text-text hover:bg-white/15"}`}
+            >
+              <MessageSquare size={18} />
+              {unread > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+                  {unread}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Chat drawer (video mode) */}
+      {isVideo && (
+        <AnimatePresence>
+          {chatOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={openChat}
+                className="sm:hidden absolute inset-0 z-30 bg-black/50"
+              />
+              <motion.aside
+                initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+                transition={{ type: "spring", stiffness: 320, damping: 34 }}
+                className="absolute top-0 right-0 h-full w-full sm:w-[380px] z-40 p-3 sm:pt-16"
+              >
+                <div className="relative h-full">
+                  <TextPanel messages={messages} onSend={handleSend} blocked={blocked} />
+                  <button
+                    onClick={openChat}
+                    aria-label="Close chat"
+                    className="absolute top-3.5 right-3 p-1.5 rounded-lg text-muted hover:text-text transition-colors z-10"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Report modal */}
       <ReportModal
